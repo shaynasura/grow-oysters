@@ -1,6 +1,10 @@
 # grow-oysters
 - Repository for GROW oysters + seagrass project
-- Creator: Shayna Sura
+
+# Creator
+Shayna Sura
+- Currently a postdoctoral scholar at [NCEAS](https://www.nceas.ucsb.edu)
+- [email](sura@nceas.ucsb.edu)
 
 ## Project Description
 - The GROW oysters + seagrass project examines the interaction between oysters on GROW reef tiles and seagrass to evaluate whether they survive, grow, and function better when present together versus separate from each other.
