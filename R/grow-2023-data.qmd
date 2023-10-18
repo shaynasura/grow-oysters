@@ -1,0 +1,31 @@
+---
+title: "GROW 2023 Data"
+author: "Shayna Sura"
+format: html
+editor: visual
+---
+
+## Data Information
+
+### About the data
+
+### Set up
+
+### Read in data
+
+
+
+## Summary Statistics
+
+### Calculating Summary Statistics
+```{r}
+
+```
+
+
+### Plotting data in figures
+
+```{r}
+
+```
+
