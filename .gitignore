@@ -1,3 +1,7 @@
+# data directory so GROW data isn't publicly available yet
+data/
+
+
 # History files
 .Rhistory
 .Rapp.history
