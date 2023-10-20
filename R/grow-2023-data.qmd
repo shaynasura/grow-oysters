@@ -9,15 +9,121 @@ editor: visual
 
 ### About the data
 
+Data was downloaded as .csv file from Google Drive.
+File path for locating these data files:
+
+
 ### Set up
 
+```{r}
+#| echo: false
+#| warning: false
+#| message: false
+
+
+library(readr)
+library(tidyr)
+library(dplyr)
+library(here)
+
+```
+
+
 ### Read in data
+```{r}
+#| echo: false
+#| warning: false
+#| message: false
+
+
+seagrass_data <- read_csv(here("data/P2 Initial Seagrass - seagrass_initial_data.csv"))
+
+# otherwise can use the .. to move out of the R directory and then into the data directory.
+
+```
+
+```{r exploring our data}
+#| echo: false
+#| eval: false
+
+
+glimpse(seagrass_data)
+
+# the Percent_Cover and Canopy_Height_cm variables are reading in as characters instead of numeric. Why?
+
+# there are some Percent_Cover values that are given as ranges (e.g., 0-1 or 0-5), and dashes are characters, not numbers.
+
+# there are N/As for Canopy_Height_cm since those measurements were not taken at all time points.
+
+```
+
+
+Decisions made about the data:
+ - For seagrass percent cover values that were recorded as ranges on the datasheets (e.g., 0-1 or 0-5), the values are being overwritten with the lower end of the range given so as to provide a conservative estimate of seagrass cover. So for a range of '0-5', the actual data value will be changed to '0'.
+
+```{r}
+#| echo: false
+
+# need to convert the Percent_Cover and Canopy_Height_cm variables to numeric instead of characters.
+
+# can also remove unnecessary columns, specifically 'entered' and 'QA/QC'
+
+# convert the 'Date' column to date format instead of character format?
+
+seagrass_clean <- seagrass_data %>% 
+  mutate(Percent_Cover = as.numeric(Percent_Cover)) %>% 
+  mutate(Canopy_Height_cm = as.numeric(Canopy_Height_cm)) %>% 
+  select(-entered) %>% 
+  select(-'QA/QC')
+
+## determine which rows in Percent_Cover were converted to NAs because the data was recorded as a range and reassign those NA values to the lower value of the range reported.
+
+ranges <- which(is.na(seagrass_clean$Percent_Cover)) # will tell us which row(s) have NAs
+
+
+# seagrass_data[ranges,]
+
+
+# change the NA in the seagrass_clean for these rows to the lower value of the range given in seagrass_data
+for (k in ranges){
+  split_values <- strsplit(seagrass_data$Percent_Cover[k], "-")
+  lower_value <- sapply(split_values, function(x) as.numeric(x[1]))
+  seagrass_clean$Percent_Cover[k] = lower_value
+}
+
+
+## double check the for-loop worked correctly...
+# seagrass_clean[ranges,]
+
+
+```
 
 
 
 ## Summary Statistics
 
 ### Calculating Summary Statistics
+
+#### Seagrass Data
+```{r}
+sg_perc_cover_plot <- seagrass_clean %>% 
+  group_by(Date,Plot_Label) %>% 
+  summarize(mean_perc_cover_plot = mean(Percent_Cover),
+            n_perc_cover_plot = n(),
+            sd_perc_cover_plot = sd(Percent_Cover)) %>% 
+  mutate(SE_perc_cover_plot = sd_perc_cover_plot / sqrt(n_perc_cover_plot))
+
+
+sg_perc_cover_plot_type <- seagrass_clean %>% 
+  group_by(Date,Plot_Type) %>% 
+  summarize(mean_perc_cover_plot_type = mean(Percent_Cover),
+            n_perc_cover_plot_type = n(),
+            sd_perc_cover_plot_type = sd(Percent_Cover)) %>% 
+  mutate(SE_perc_cover_plot_type = sd_perc_cover_plot_type / sqrt(n_perc_cover_plot_type))
+```
+
+
+#### Oyster Data
 ```{r}
 
 ```
