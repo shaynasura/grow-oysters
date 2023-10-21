@@ -5,12 +5,21 @@ format: html
 editor: visual
 ---
 
+
+
+<!-- TO DO - FIGURE OUT WHY THE SEAGRASS CANOPY HEIGHT AVERAGES FOR EACH PLOT ARE NOT PLOTTING IN THE RIGHT LOCATION FOR THEIR Y_VALUES!!! -->
+
+
+
 ## Data Information
 
 ### About the data
 
 Data were downloaded as .csv files from Google Drive.
-File path for locating these data files:
+
+Oyster data [link](https://docs.google.com/spreadsheets/d/1SPkAdKGaTz9FBQBvVFP4YggArjNHhA2ZsPg7ZFa85XQ/edit?pli=1#gid=0) for accessing data on Google Drive.
+
+Seagrass data [link](https://docs.google.com/spreadsheets/d/1B67Mj2S6X3iJpDYtuD5ynjN1QRwLmFrBar1ooeU03_0/edit?pli=1#gid=811567800) for accessing data on Google Drive.
 
 
 ### Set up
@@ -38,12 +47,14 @@ library(ggplot2)
 
 
 seagrass_data <- read_csv(here("data/P2 Initial Seagrass - seagrass_initial_data.csv"))
+oyster_size <- read_csv(here("data/P2 Initial Oysters - size.csv"))
+oyster_abundance <- read_csv(here("data/P2 Initial Oysters - abundance.csv"))
 
-# otherwise can use the .. to move out of the R directory and then into the data directory.
+# otherwise can use the ".." to move out of the R directory and then into the data directory.
 
 ```
 
-```{r exploring our data}
+```{r exploring our seagrass data}
 #| echo: false
 #| eval: false
 
@@ -59,12 +70,49 @@ glimpse(seagrass_data)
 ```
 
 
+```{r exploring our oyster data}
+#| echo: false
+#| eval: false
+
+
+glimpse(oyster_size)
+glimpse(oyster_abundance)
+
+levels(as.factor(oyster_size$Plot_Type))
+levels(as.factor(oyster_size$Plot_Label))
+
+# we have a row for the "extra" GROW tile we deployed, but we don't want to include that in our summaries, so going to remove those rows from the data.
+
+# we also have a plot label of "ST5" which seems like it might be a type.
+## Shayna commented on this on the google sheet for Eme to double check. In the meantime, Shayna is manually changing this to ST3 in her downloaded .csv file of these data because it seems highly unlikely that it's anything else.
+
+```
+
+
+
 Decisions made about the data:
+ - For oyster data, the data recorded for the "extra" GROW tile is removed and not included in further analyses.
  - For seagrass percent cover values that were recorded as ranges on the datasheets (e.g., 0-1 or 0-5), the values are being overwritten with the lower end of the range given so as to provide a conservative estimate of seagrass cover. So for a range of '0-5', the actual data value will be changed to '0'.
 
 ```{r}
 #| echo: false
 
+
+
+## Oyster Data
+# need to remove the rows that have data on the "Extra" GROW tile.
+# need to remove the rows that have NA values for the oyster abundance
+
+oyster_size_clean <- oyster_size %>% 
+  filter(Plot_Type != "Extra")
+
+oyster_abundance_clean <- oyster_abundance %>% 
+  filter(Plot_Type != "Extra") %>% 
+  filter(Plot_Label != "#N/A")
+
+
+
+## Seagrass Data
 # need to convert the Percent_Cover and Canopy_Height_cm variables to numeric instead of characters.
 
 # can also remove unnecessary columns, specifically 'entered' and 'QA/QC'
@@ -105,7 +153,7 @@ for (k in ranges){
 
 ### Calculating Summary Statistics
 
-#### Seagrass Data
+#### Seagrass Data - Percent Cover & Canopy Height
 ```{r}
 #| echo: false
 
@@ -123,7 +171,7 @@ sg_summary_plot <- seagrass_clean %>%
                    summary_calcs))
 
 
-sg_summary_plot_type <- sg_perc_cover_plot %>% 
+sg_summary_plot_type <- sg_summary_plot %>% 
   group_by(Date,Plot_Type) %>% 
   summarize(across(c(Percent_Cover_Mean,Canopy_Height_cm_Mean),
                    summary_calcs))
@@ -133,26 +181,378 @@ sg_summary_plot_type <- sg_perc_cover_plot %>%
 
 
 
-#### Oyster Data
+#### Oyster Data - Abundance
 ```{r}
+#| echo: false
+
+# 
+# summary_calcs <- list(
+#   Mean = function(x) mean(x, na.rm = TRUE),
+#   n = function(x) sum(!is.na(x)),
+#   SD = function(x) ifelse(all(is.na(x)), NA, sd(x, na.rm = TRUE)),
+#   SE = function(x) ifelse(all(is.na(x)), NA, sd(x, na.rm = TRUE) / sqrt(sum(!is.na(x))))
+# )
+
+oyst_abundance_summary_tile <- oyster_abundance_clean %>% 
+  group_by(Date,
+           Plot_Label,
+           Plot_Type,
+           Tile_Type,
+           Tile_Tag) %>% 
+  summarize(across(c(Oyster_Abundance),
+                   summary_calcs)) %>% 
+  ungroup()
+
+# summarize the oyster data by plot type but SEPARATE for the predator versus no-predator cue tiles
+oyst_abundance_summary_plot <- oyst_abundance_summary_tile %>% 
+  group_by(Date,
+           Plot_Label,
+           Plot_Type,
+           Tile_Type) %>% 
+  summarize(across(c(Oyster_Abundance_Mean),
+                   summary_calcs)) %>% 
+  group_by(Date,
+           Plot_Type,
+           Tile_Type) %>% 
+  summarize(across(c(Oyster_Abundance_Mean_Mean),
+                   summary_calcs))
+
+# summarize the oyster data by plot type but for all 4 tiles, regardless of predator treatment (predator vs. no-predator cues)
+oyst_abundance_summary_plot_type <- oyst_abundance_summary_tile %>% 
+  group_by(Date,
+           Plot_Label,
+           Plot_Type) %>% 
+  summarize(across(c(Oyster_Abundance_Mean),
+                   summary_calcs)) %>% 
+  group_by(Date,
+           Plot_Type) %>% 
+  summarize(across(c(Oyster_Abundance_Mean_Mean),
+                   summary_calcs))
 
 ```
+
+
+
+
+#### Oyster Data - Size
+```{r}
+#| echo: false
+
+# 
+# summary_calcs <- list(
+#   Mean = function(x) mean(x, na.rm = TRUE),
+#   n = function(x) sum(!is.na(x)),
+#   SD = function(x) ifelse(all(is.na(x)), NA, sd(x, na.rm = TRUE)),
+#   SE = function(x) ifelse(all(is.na(x)), NA, sd(x, na.rm = TRUE) / sqrt(sum(!is.na(x))))
+# )
+
+oyst_size_summary_tile <- oyster_size_clean %>% 
+  group_by(Date,
+           Plot_Label,
+           Plot_Type,
+           Tile_Type,
+           Tile_Tag) %>% 
+  summarize(across(c(Oyster_Length_mm),
+                   summary_calcs)) %>% 
+  ungroup()
+
+# summarize the oyster data by plot type but SEPARATE for the predator versus no-predator cue tiles
+oyst_size_summary_plot <- oyst_size_summary_tile %>% 
+  group_by(Date,
+           Plot_Label,
+           Plot_Type,
+           Tile_Type) %>% 
+  summarize(across(c(Oyster_Length_mm_Mean),
+                   summary_calcs)) %>% 
+  group_by(Date,
+           Plot_Type,
+           Tile_Type) %>% 
+  summarize(across(c(Oyster_Length_mm_Mean_Mean),
+                   summary_calcs))
+
+# summarize the oyster data by plot type but for all 4 tiles, regardless of predator treatment (predator vs. no-predator cues)
+oyst_size_summary_plot_type <- oyst_size_summary_tile %>% 
+  group_by(Date,
+           Plot_Label,
+           Plot_Type) %>% 
+  summarize(across(c(Oyster_Length_mm_Mean),
+                   summary_calcs)) %>% 
+  group_by(Date,
+           Plot_Type) %>% 
+  summarize(across(c(Oyster_Length_mm_Mean_Mean),
+                   summary_calcs)) %>% 
+  ungroup()
+
+```
+
+
 
 
 ### Plotting data in figures
 
+#### Seagrass Data Figures
 ```{r}
+#| echo: false
+#| eval: false
 
 ggplot(data = sg_summary_plot,
        aes(x = Plot_Type, y = Percent_Cover_Mean)) +
-  geom_point(position = position_jitter(width = 0.5), size = 4) +
+  facet_wrap(~Date, nrow = 1, ncol = 2,
+             labeller = labeller(Date = c("7/31/2023" = "Initial",
+                                          "9/6/23" = "One Month Post-Deployment")),
+             scales = "free") +
+  theme_classic() + 
   geom_errorbar(aes(ymin = Percent_Cover_Mean - Percent_Cover_SE,
                      ymax = Percent_Cover_Mean + Percent_Cover_SE),
-                 width = 0.2,
-                position = position_dodge(0.5)) +
-  # geom_jitter() +
-  facet_wrap(~Date, nrow = 1, ncol = 2) +
-  theme_classic()
+                width = 0.2,
+                position = position_jitter(width = 0.3, seed = 123)) +
+  geom_point(position = position_jitter(width = 0.3, seed = 123),
+             size = 4,
+             aes(shape = "plot average", fill = "plot average", color = "plot average"),
+             show.legend = TRUE) +
+  geom_errorbar(data = sg_summary_plot_type,
+                inherit.aes = FALSE,
+                aes(x = Plot_Type,
+                    ymin = Percent_Cover_Mean_Mean - Percent_Cover_Mean_SE,
+                    ymax = Percent_Cover_Mean_Mean + Percent_Cover_Mean_SE),
+                 width = 0.2) +
+  geom_point(data = sg_summary_plot_type,
+             inherit.aes = FALSE,
+             aes(x = Plot_Type, y = Percent_Cover_Mean_Mean,
+                 shape = "plot type average", fill = "plot type average", color = "plot type average"),
+             size = 6,
+             show.legend = TRUE) +
+  ylim(0,100) +
+  labs(x = "Plot Type",
+       y = "Seagrass Percent Cover (mean±SE)") +
+  scale_color_manual(values = c("plot average" = "black", "plot type average" = "black"), name = "Legend") +
+  scale_shape_manual(values = c("plot average" = 21, "plot type average" = 23), name = "Legend") +
+  scale_fill_manual(values = c("plot average" = "lightgreen", "plot type average" = "darkgreen"), name = "Legend") +
+  guides(
+    shape = guide_legend(override.aes = list(size = 4))
+  ) +
+  theme(panel.border = element_blank())
 
 ```
+
+
+
+```{r}
+#| echo: false
+
+
+## function to easily plot the seagrass percent cover and canopy height data without having to copy and paste and rename all the variables....
+
+create_custom_ggplot <- function(summary1, summary2, variable_name, y_axis_label, y_axis_min, y_axis_max) {
+  gg <- ggplot(summary1, aes(x = Plot_Type, y = !!sym(paste0(variable_name, "_Mean")))) +
+    facet_wrap(~Date, nrow = 1, ncol = 2,
+               labeller = labeller(Date = c("7/31/2023" = "Initial", "9/6/23" = "One Month Post-Deployment")),
+               scales = "free") +
+    theme_classic() + 
+    geom_errorbar(aes(ymin = !!sym(paste0(variable_name, "_Mean")) - !!sym(paste0(variable_name, "_SE")),
+                      ymax = !!sym(paste0(variable_name, "_Mean")) + !!sym(paste0(variable_name, "_SE"))),
+                  width = 0.2,
+                  position = position_jitter(width = 0.3, seed = 123)) +
+    geom_point(position = position_jitter(width = 0.3, seed = 123),
+               size = 4,
+               aes(shape = "plot average", fill = "plot average", color = "plot average"),
+               show.legend = TRUE) +
+    geom_errorbar(data = summary2,
+                  inherit.aes = FALSE,
+                  aes(x = Plot_Type,
+                      ymin = !!sym(paste0(variable_name, "_Mean_Mean")) - !!sym(paste0(variable_name, "_Mean_SE")),
+                      ymax = !!sym(paste0(variable_name, "_Mean_Mean")) + !!sym(paste0(variable_name, "_Mean_SE"))),
+                  width = 0.2) +
+    geom_point(data = summary2,
+               inherit.aes = FALSE,
+               aes(x = Plot_Type, y = !!sym(paste0(variable_name, "_Mean_Mean")),
+                   shape = "plot type average", fill = "plot type average", color = "plot type average"),
+               size = 6,
+               show.legend = TRUE) +
+    ylim(y_axis_min, y_axis_max) +
+    labs(x = "Plot Type",
+         y = paste(y_axis_label, " (mean±SE)")) +
+    scale_color_manual(values = c("plot average" = "black", "plot type average" = "black"), name = "Legend") +
+    scale_shape_manual(values = c("plot average" = 21, "plot type average" = 23), name = "Legend") +
+    scale_fill_manual(values = c("plot average" = "lightgreen", "plot type average" = "darkgreen"), name = "Legend") +
+    guides(shape = guide_legend(override.aes = list(size = 4)))+
+    theme(panel.border = element_blank())
+  
+  return(gg)
+}
+
+
+
+seagrass_percent_cover_fig <- create_custom_ggplot(sg_summary_plot, sg_summary_plot_type, "Percent_Cover", "Seagrass Percent Cover", 0, 100)
+print(seagrass_percent_cover_fig)
+
+seagrass_canopy_height_fig <- create_custom_ggplot(sg_summary_plot, sg_summary_plot_type, "Canopy_Height_cm", "Seagrass Canopy Height (cm)", 0, 25)
+print(seagrass_canopy_height_fig)
+
+
+```
+
+
+#### Oyster Data Figures
+
+```{r providing an x-axis jitter value for all oyster datasets}
+
+# jitter_values <- function(){
+#   
+# }
+  
+oyst_abundance_summary_tile <- oyst_abundance_summary_tile %>% 
+  mutate(x_jitter = ifelse(Plot_Type == "Seagrass+Tiles", 0.18, 0.68)) %>% 
+  mutate(x_jitter = ifelse(Tile_Type == "Predator", x_jitter + 0.14, x_jitter)) %>% 
+  mutate(Tile_Type = as.factor(Tile_Type))
+
+oyst_abundance_summary_plot <- oyst_abundance_summary_plot %>% 
+  mutate(x_jitter = ifelse(Plot_Type == "Seagrass+Tiles", 0.21, 0.71)) %>% 
+  mutate(x_jitter = ifelse(Tile_Type == "Predator", x_jitter + 0.14, x_jitter)) %>% 
+  mutate(Tile_Type = as.factor(Tile_Type))
+
+oyst_abundance_summary_plot_type <- oyst_abundance_summary_plot_type %>% 
+  mutate(x_jitter = ifelse(Plot_Type == "Seagrass+Tiles", 0.25, 0.75))
+
+```
+
+
+
+```{r custom function for plotting oyster data}
+
+
+oyster_custom_ggplot <- function(summary1, summary2, summary3, variable_name, y_axis_label, y_axis_min, y_axis_max) {
+  gg <- ggplot(summary1, aes(x = x_jitter, y = !!sym(paste0(variable_name, "_Mean")))) +
+    facet_wrap(~Date, nrow = 1, ncol = 2,
+               labeller = labeller(Date = c("8/2/23" = "Initial", "9/6/23" = "One Month Post-Deployment")),
+               scales = "free") +
+    theme_classic() + 
+    geom_errorbar(aes(ymin = !!sym(paste0(variable_name, "_Mean")) - !!sym(paste0(variable_name, "_SE")),
+                      ymax = !!sym(paste0(variable_name, "_Mean")) + !!sym(paste0(variable_name, "_SE"))),
+                  width = 0.1) +
+    geom_point(size = 4,
+               aes(shape = "tile average", fill = "tile average", color = "tile average"),
+               show.legend = TRUE) +
+    geom_errorbar(data = summary2,
+                  inherit.aes = FALSE,
+                  aes(x = x_jitter,
+                      ymin = !!sym(paste0(variable_name, "_Mean_Mean_Mean")) - !!sym(paste0(variable_name, "_Mean_Mean_SE")),
+                      ymax = !!sym(paste0(variable_name, "_Mean_Mean_Mean")) + !!sym(paste0(variable_name, "_Mean_Mean_SE"))),
+                  width = 0.1) +
+    geom_point(data = summary2,
+               inherit.aes = FALSE,
+               aes(x = x_jitter, y = !!sym(paste0(variable_name, "_Mean_Mean_Mean")),
+                   shape = "plot average", fill = "plot average", color = "plot average"),
+               size = 6,
+               show.legend = TRUE) +
+    geom_errorbar(data = summary3,
+                  inherit.aes = FALSE,
+                  aes(x = x_jitter,
+                      ymin = !!sym(paste0(variable_name, "_Mean_Mean_Mean")) - !!sym(paste0(variable_name, "_Mean_Mean_SE")),
+                      ymax = !!sym(paste0(variable_name, "_Mean_Mean_Mean")) + !!sym(paste0(variable_name, "_Mean_Mean_SE"))),
+                  width = 0.1) +
+    geom_point(data = summary3,
+               inherit.aes = FALSE,
+               aes(x = x_jitter, y = !!sym(paste0(variable_name, "_Mean_Mean_Mean")),
+                   shape = "plot type average", fill = "plot type average", color = "plot type average"),
+               size = 6,
+               show.legend = TRUE) +
+    scale_x_continuous(breaks = c(0.25, 0.75), labels = c("Seagrass+Tiles", "Tiles")) +
+    ylim(y_axis_min, y_axis_max) +
+    labs(x = "Plot Type",
+         y = paste(y_axis_label, " (mean±SE)")) +
+    scale_color_manual(values = c("tile average" = "black", "plot average" = "black", "plot type average" = "black"), name = "Legend") +
+    scale_shape_manual(values = c("tile average" = 21, "plot average" = 21, "plot type average" = 23), name = "Legend") +
+    scale_fill_manual(values = c("tile average" = "lightblue", "plot average" = "darkblue", "plot type average" = "gold"), name = "Legend") +
+    guides(shape = guide_legend(override.aes = list(size = 4)))+
+    theme(panel.border = element_blank())
+  
+  return(gg)
+}
+
+
+oyster_custom_ggplot(oyst_abundance_summary_tile,
+                     oyst_abundance_summary_plot,
+                     oyst_abundance_summary_plot_type,
+                     "Oyster_Abundance",
+                     "Oyster Abundance",
+                     0, 35)
+
+```
+
+
+
+```{r}
+## revised oyster ggplot function from chatGPT suggestions
+
+oyster_custom_ggplot_2 <- function(summary1, summary2, summary3, variable_name, y_axis_label, y_axis_min, y_axis_max) {
+  gg <- ggplot(summary1, aes(x = x_jitter, y = !!sym(paste0(variable_name, "_Mean")))) +
+    facet_wrap(~Date, nrow = 1, ncol = 2,
+               labeller = labeller(Date = c("8/2/23" = "Initial", "9/6/23" = "One Month Post-Deployment")),
+               scales = "free") +
+    theme_classic() + 
+    geom_errorbar(aes(ymin = !!sym(paste0(variable_name, "_Mean")) - !!sym(paste0(variable_name, "_SE")),
+                      ymax = !!sym(paste0(variable_name, "_Mean")) + !!sym(paste0(variable_name, "_SE"))),
+                  width = 0.1) +
+    geom_point(size = 4, aes(shape = "tile average", fill = Tile_Type, color = Tile_Type),
+               show.legend = TRUE) +
+    scale_color_manual(values = c("Level1" = "red", "Level2" = "blue", "Level3" = "green")) +
+    scale_fill_manual(values = c("Level1" = "red", "Level2" = "blue", "Level3" = "green")) +
+    # 
+    # geom_point(size = 4,
+    #            aes(shape = "tile average", fill = Tile_Type, color = Tile_Type),
+    #            show.legend = TRUE) +
+    geom_errorbar(data = summary2,
+                  inherit.aes = FALSE,
+                  aes(x = x_jitter,
+                      ymin = !!sym(paste0(variable_name, "_Mean_Mean_Mean")) - !!sym(paste0(variable_name, "_Mean_Mean_SE")),
+                      ymax = !!sym(paste0(variable_name, "_Mean_Mean_Mean")) + !!sym(paste0(variable_name, "_Mean_Mean_SE"))),
+                  width = 0.1) +
+    geom_point(data = summary2,
+               inherit.aes = FALSE,
+               aes(x = x_jitter, y = !!sym(paste0(variable_name, "_Mean_Mean_Mean")),
+                   shape = "plot average", fill = Tile_Type, color = Tile_Type),
+               size = 6,
+               show.legend = TRUE) +
+    geom_errorbar(data = summary3,
+                  inherit.aes = FALSE,
+                  aes(x = x_jitter,
+                      ymin = !!sym(paste0(variable_name, "_Mean_Mean_Mean")) - !!sym(paste0(variable_name, "_Mean_Mean_SE")),
+                      ymax = !!sym(paste0(variable_name, "_Mean_Mean_Mean")) + !!sym(paste0(variable_name, "_Mean_Mean_SE"))),
+                  width = 0.1) +
+    geom_point(data = summary3,
+               inherit.aes = FALSE,
+               aes(x = x_jitter, y = !!sym(paste0(variable_name, "_Mean_Mean_Mean")),
+                   shape = "plot type average", fill = "plot type average", color = "plot type average"),
+               size = 6,
+               show.legend = TRUE) +
+    scale_x_continuous(breaks = c(0.25, 0.75), labels = c("Seagrass+Tiles", "Tiles")) +
+    ylim(y_axis_min, y_axis_max) +
+    labs(x = "Plot Type",
+         y = paste(y_axis_label, " (mean±SE)")) +
+    scale_color_manual(values = c("tile average" = "black", "plot average" = "black", "plot type average" = "black",
+                                  Tile_Type = c("Level1" = "gray", "Level2" = "blue", "Level3" = "yellow")), name = "Legend") +
+    scale_shape_manual(values = c("tile average" = 21, "plot average" = 21, "plot type average" = 23), name = "Legend") +
+    scale_fill_manual(values = c("tile average" = "lightblue", "plot average" = "darkblue", "plot type average" = "gold"), name = "Legend") +
+    # 
+    # scale_color_manual(values = c("tile average" = "black", "plot average" = "black", "plot type average" = "black"), name = "Legend") +
+    # scale_shape_manual(values = c("tile average" = 21, "plot average" = 21, "plot type average" = 23), name = "Legend") +
+    # scale_fill_manual(values = c("tile average" = "lightblue", "plot average" = "darkblue", "plot type average" = "gold"), name = "Legend") +
+    guides(shape = guide_legend(override.aes = list(size = 4)))+
+    theme(panel.border = element_blank())
+  
+  return(gg)
+}
+
+
+oyster_custom_ggplot_2(oyst_abundance_summary_tile,
+                     oyst_abundance_summary_plot,
+                     oyst_abundance_summary_plot_type,
+                     "Oyster_Abundance",
+                     "Oyster Abundance",
+                     0, 35)
+
+```
+
+
 
