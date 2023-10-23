@@ -78,9 +78,6 @@ glimpse(seagrass_data)
 glimpse(oyster_size)
 glimpse(oyster_abundance)
 
-levels(as.factor(oyster_size$Plot_Type))
-levels(as.factor(oyster_size$Plot_Label))
-
 # we have a row for the "extra" GROW tile we deployed, but we don't want to include that in our summaries, so going to remove those rows from the data.
 
 # we also have a plot label of "ST5" which seems like it might be a type.
@@ -103,12 +100,17 @@ Decisions made about the data:
 # need to remove the rows that have data on the "Extra" GROW tile.
 # need to remove the rows that have NA values for the oyster abundance
 
+levels(as.factor(oyster_size$Plot_Type))
+levels(as.factor(oyster_size$Plot_Label))
+
 oyster_size_clean <- oyster_size %>% 
   filter(Plot_Type != "Extra")
 
 oyster_abundance_clean <- oyster_abundance %>% 
   filter(Plot_Type != "Extra") %>% 
   filter(Plot_Label != "#N/A")
+
+
 
 
 
@@ -185,13 +187,13 @@ sg_summary_plot_type <- sg_summary_plot %>%
 ```{r}
 #| echo: false
 
-# 
-# summary_calcs <- list(
-#   Mean = function(x) mean(x, na.rm = TRUE),
-#   n = function(x) sum(!is.na(x)),
-#   SD = function(x) ifelse(all(is.na(x)), NA, sd(x, na.rm = TRUE)),
-#   SE = function(x) ifelse(all(is.na(x)), NA, sd(x, na.rm = TRUE) / sqrt(sum(!is.na(x))))
-# )
+
+summary_calcs <- list(
+  Mean = function(x) mean(x, na.rm = TRUE),
+  n = function(x) sum(!is.na(x)),
+  SD = function(x) ifelse(all(is.na(x)), NA, sd(x, na.rm = TRUE)),
+  SE = function(x) ifelse(all(is.na(x)), NA, sd(x, na.rm = TRUE) / sqrt(sum(!is.na(x))))
+)
 
 oyst_abundance_summary_tile <- oyster_abundance_clean %>% 
   group_by(Date,
@@ -394,6 +396,115 @@ print(seagrass_canopy_height_fig)
 
 
 #### Oyster Data Figures
+
+
+
+
+```{r combining oyster summary tables into one table for plotting}
+
+#syntax for rename is NEW name first and then old/existing column name
+
+
+# for oyst_abundance_summary_tile summary table
+oyst_abundance_summary_tile <- oyst_abundance_summary_tile %>%
+  select(-Plot_Label, -Tile_Tag) %>% 
+  mutate(data_type = ifelse(Tile_Type == "Control", "Unseeded Tile",
+                            ifelse(Tile_Type == "No-predator", "No-Predator Tile",
+                                   ifelse(Tile_Type == "Predator", "Predator Tile", "ERROR"))))
+
+
+
+# for oyst_abundance_summary_plot summary table
+oyst_abundance_summary_plot <- oyst_abundance_summary_plot %>% 
+  rename(Oyster_Abundance_Mean = Oyster_Abundance_Mean_Mean_Mean,
+         Oyster_Abundance_n = Oyster_Abundance_Mean_Mean_n,
+         Oyster_Abundance_SD = Oyster_Abundance_Mean_Mean_SD,
+         Oyster_Abundance_SE = Oyster_Abundance_Mean_Mean_SE)
+
+oyst_abundance_summary_plot <- oyst_abundance_summary_plot %>%
+  mutate(data_type = ifelse(Tile_Type == "Control", "Unseeded Plot",
+                            ifelse(Tile_Type == "No-predator", "No-Predator Plot",
+                                   ifelse(Tile_Type == "Predator", "Predator Plot", "ERROR"))))
+
+
+# for oyst_abundance_summary_plot_type summary table
+oyst_abundance_summary_plot_type <- oyst_abundance_summary_plot_type %>% 
+  rename(Oyster_Abundance_Mean = Oyster_Abundance_Mean_Mean_Mean,
+         Oyster_Abundance_n = Oyster_Abundance_Mean_Mean_n,
+         Oyster_Abundance_SD = Oyster_Abundance_Mean_Mean_SD,
+         Oyster_Abundance_SE = Oyster_Abundance_Mean_Mean_SE) %>% 
+  mutate(data_type = "Overall Plot",
+         Tile_Type = "All") %>% 
+  relocate(Tile_Type, .after = Plot_Type)
+
+
+oyst_abundance_summary_fig <- bind_rows(oyst_abundance_summary_tile,
+                                        oyst_abundance_summary_plot,
+                                        oyst_abundance_summary_plot_type)
+
+```
+
+
+
+
+
+
+## Trying a different way to plot the oyster data
+
+
+## IMPROVEMENTS TO DO
+
+### can I jitter the points for those that are overlapping within groups?
+### reorder the factor levels for x-axis categories.
+### figure out appropriate size to save this as, including appropriate font size for x-axis labels.
+
+#### Duplicate for oyster size data!
+```{r}
+
+# oyster_custom_ggplot <- function(summary1, summary2, summary3, variable_name, y_axis_label, y_axis_min, y_axis_max) {
+FIG_oyst_abundance <- ggplot(oyst_abundance_summary_fig, aes(x = data_type, y = Oyster_Abundance_Mean, group = Plot_Type)) +
+    facet_wrap(~Date, nrow = 2, ncol = 1,
+               labeller = labeller(Date = c("8/2/23" = "Initial", "9/6/23" = "One Month Post-Deployment")),
+               scales = "free") +
+    theme_classic() + 
+    geom_errorbar(aes(ymin = Oyster_Abundance_Mean - Oyster_Abundance_SE,
+                      ymax = Oyster_Abundance_Mean + Oyster_Abundance_SE,
+                      group = Plot_Type),
+                  width = 0.1,
+                  position = position_dodge(width = 0.5)) +
+    geom_point(size = 4,
+               aes(shape = Plot_Type, fill = Plot_Type, color = Plot_Type),
+               position = position_dodge(width = 0.5),
+               show.legend = TRUE) +
+    labs(x = "Tile or Plot Type(s) Included in Values",
+         y = "Oyster Abundance (mean±SE)") +
+         # ,
+         # color = "Plot Type",
+         # shape = "Plot Type",
+         # fill = "Plot Type") +
+    scale_color_manual(values = c("Seagrass+Tiles" = "black", "Tiles" = "black"), name = "Plot Type") +
+    scale_shape_manual(values = c("Seagrass+Tiles" = 21, "Tiles" = 21), name = "Plot Type") +
+    scale_fill_manual(values = c("Seagrass+Tiles" = "lightblue", "Tiles" = "coral"), name = "Plot Type") +
+    # guides(shape = guide_legend(override.aes = list(size = 4)))+
+    theme(panel.border = element_blank())
+
+FIG_oyst_abundance
+
+
+## IMPROVEMENTS TO DO
+
+### can I jitter the points for those that are overlapping within groups?
+### reorder the factor levels for x-axis categories.
+### figure out appropriate size to save this as, including appropriate font size for x-axis labels.
+
+#### Duplicate for oyster size data!
+
+
+```
+
+
+
+
 
 ```{r providing an x-axis jitter value for all oyster datasets}
 
