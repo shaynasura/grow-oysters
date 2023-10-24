@@ -35,6 +35,7 @@ library(tidyr)
 library(dplyr)
 library(here)
 library(ggplot2)
+library(ggbeeswarm)
 
 ```
 
@@ -62,9 +63,7 @@ oyster_abundance <- read_csv(here("data/P2 Initial Oysters - abundance.csv"))
 glimpse(seagrass_data)
 
 # the Percent_Cover and Canopy_Height_cm variables are reading in as characters instead of numeric. Why?
-
 # there are some Percent_Cover values that are given as ranges (e.g., 0-1 or 0-5), and dashes are characters, not numbers.
-
 # there are N/As for Canopy_Height_cm since those measurements were not taken at all time points.
 
 ```
@@ -93,6 +92,7 @@ Decisions made about the data:
 
 ```{r}
 #| echo: false
+#| warning: false
 
 
 
@@ -116,9 +116,7 @@ oyster_abundance_clean <- oyster_abundance %>%
 
 ## Seagrass Data
 # need to convert the Percent_Cover and Canopy_Height_cm variables to numeric instead of characters.
-
 # can also remove unnecessary columns, specifically 'entered' and 'QA/QC'
-
 # convert the 'Date' column to date format instead of character format?
 
 seagrass_clean <- seagrass_data %>% 
@@ -351,6 +349,11 @@ create_custom_ggplot <- function(summary1, summary2, variable_name, y_axis_label
                labeller = labeller(Date = c("7/31/2023" = "Initial", "9/6/23" = "One Month Post-Deployment")),
                scales = "free") +
     theme_classic() + 
+    # geom_quasirandom(data = summary1,
+    #                  inherit.aes = FALSE,
+    #                  aes(x = Plot_Type,
+    #                      ymin = !!sym(paste0(variable_name, "_Mean")) - !!sym(paste0(variable_name, "_SE")),
+    #                      ymax = !!sym(paste0(variable_name, "_Mean")) + !!sym(paste0(variable_name, "_SE")))) +
     geom_errorbar(aes(ymin = !!sym(paste0(variable_name, "_Mean")) - !!sym(paste0(variable_name, "_SE")),
                       ymax = !!sym(paste0(variable_name, "_Mean")) + !!sym(paste0(variable_name, "_SE"))),
                   width = 0.2,
@@ -359,6 +362,9 @@ create_custom_ggplot <- function(summary1, summary2, variable_name, y_axis_label
                size = 4,
                aes(shape = "plot average", fill = "plot average", color = "plot average"),
                show.legend = TRUE) +
+    # geom_quasirandom(size = 4,
+    #            aes(shape = "plot average", fill = "plot average", color = "plot average"),
+    #            show.legend = TRUE) +
     geom_errorbar(data = summary2,
                   inherit.aes = FALSE,
                   aes(x = Plot_Type,
@@ -442,6 +448,19 @@ oyst_abundance_summary_fig <- bind_rows(oyst_abundance_summary_tile,
                                         oyst_abundance_summary_plot,
                                         oyst_abundance_summary_plot_type)
 
+
+#check order of levels for the data_type variable
+levels(as.factor(oyst_abundance_summary_fig$data_type))
+
+#reorder the levels for the data_type variable
+levels(oyst_abundance_summary_fig$data_type) <- c("Unseeded Tile","Unseeded Plot", "No-Predator Tile", "No-Predator Plot",
+                                                 "Predator Tile", "Predator Plot", "Overall Plot")
+
+oyst_abundance_summary_fig$data_type <- factor(oyst_abundance_summary_fig$data_type, levels = c("Unseeded Tile","Unseeded Plot", "No-Predator Tile", "No-Predator Plot", "Predator Tile", "Predator Plot", "Overall Plot"))
+
+#check order of level for the data_type variable
+levels(oyst_abundance_summary_fig$data_type)
+
 ```
 
 
@@ -454,9 +473,8 @@ oyst_abundance_summary_fig <- bind_rows(oyst_abundance_summary_tile,
 
 ## IMPROVEMENTS TO DO
 
-### can I jitter the points for those that are overlapping within groups?
-### reorder the factor levels for x-axis categories.
 ### figure out appropriate size to save this as, including appropriate font size for x-axis labels.
+### return to seagrass data and figure and remake in this same configuration?? - need to figure out why those canopy height points are being plotted incorrectly.
 
 #### Duplicate for oyster size data!
 ```{r}
@@ -467,14 +485,30 @@ FIG_oyst_abundance <- ggplot(oyst_abundance_summary_fig, aes(x = data_type, y = 
                labeller = labeller(Date = c("8/2/23" = "Initial", "9/6/23" = "One Month Post-Deployment")),
                scales = "free") +
     theme_classic() + 
-    geom_errorbar(aes(ymin = Oyster_Abundance_Mean - Oyster_Abundance_SE,
+    # geom_errorbar(aes(ymin = Oyster_Abundance_Mean - Oyster_Abundance_SE,
+    #                   ymax = Oyster_Abundance_Mean + Oyster_Abundance_SE,
+    #                   group = Plot_Type,
+    #                   shape = Plot_Type, fill = Plot_Type, color = Plot_Type),
+    #               width = 0.1,
+    #               position = position_jitterdodge(jitter.width = 0.3,
+    #                                               dodge.width = 0.5,
+    #                                               seed = 123)) +
+    #               # position = position_dodge(width = 0.5)) +
+    geom_linerange(aes(ymin = Oyster_Abundance_Mean - Oyster_Abundance_SE,
                       ymax = Oyster_Abundance_Mean + Oyster_Abundance_SE,
-                      group = Plot_Type),
-                  width = 0.1,
-                  position = position_dodge(width = 0.5)) +
-    geom_point(size = 4,
+                      group = Plot_Type,
+                      color = Plot_Type),
+                  # width = 0.1,
+                  position = position_jitterdodge(jitter.width = 0.4,
+                                                  dodge.width = 1,
+                                                  seed = 155),
+                  linewidth = 0.8) +
+    geom_point(size = 3,
                aes(shape = Plot_Type, fill = Plot_Type, color = Plot_Type),
-               position = position_dodge(width = 0.5),
+               position = position_jitterdodge(jitter.width = 0.4,
+                                                  dodge.width = 1,
+                                                  seed = 155),
+               # position = position_dodge(width = 0.5),
                show.legend = TRUE) +
     labs(x = "Tile or Plot Type(s) Included in Values",
          y = "Oyster Abundance (mean±SE)") +
