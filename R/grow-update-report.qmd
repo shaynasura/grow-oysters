@@ -1,0 +1,70 @@
+---
+title: "GROW DISL Report"
+author: "Shayna A. Sura"
+format: pdf
+editor: visual
+---
+
+<!-- To create this document, must first run the associated .qmd file named "grow-2023-data.qmd". -->
+
+# GROW Project
+
+# Dauphin Island Sea Lab
+
+# Phase 2
+
+## Update Report
+
+## Data Summary
+
+### Oysters
+
+```{r}
+#| echo: false
+#| warning: false
+#| message: false
+
+
+```
+
+**Figure 1.** The abundance of oysters on Tiles a) before deployment (initials) and b) one-month post-deployment into the field. Tiles were deployed into either Seagrass+Tiles plots or Tiles Only plots.
+
+```{r}
+#| echo: false
+#| warning: false
+#| message: false
+
+
+```
+
+**Figure 2.** The size of oysters (mm) on Tiles a) before deployment (initials) and b) one-month post-deployment into the field. Tiles were deployed into either Seagrass+Tiles plots or Tiles Only plots.
+
+### Seagrass
+
+```{r}
+#| echo: false
+#| warning: false
+#| message: false
+
+# {{< include _grow-2023-data.qmd >}}
+# 
+# {{< include _grow-2023-data.qmd>}}
+
+```
+
+![](images/Fig_3_seagrass_percent_cover.pdf){fig-align="center" width="4in" height="6in"}
+
+**Figure 3.** The percent cover of seagrass in Seagrass and Seagrass+Tiles plot types a) before deployment of Tiles (initials) and b) one-month post-deployment of Tiles into the field. Seagrass percent cover was assessed in 4 quadrats per plot. There are three replicate plots per plot type (Seagrass, Seagrass+Tiles).
+
+```{r}
+#| echo: false
+#| warning: false
+#| message: false
+
+
+# Fig_2_Seagrass_Canopy_Height
+```
+
+![](images/Fig_4_seagrass_canopy_height.pdf){fig-align="center" width="4in" height="6in"}
+
+**Figure 4.** The canopy height of seagrass (cm) in Seagrass and Seagrass+Tiles plot types a) before deployment of Tiles (initials) and b) one-month post-deployment of Tiles into the field. Seagrass percent cover was assessed in 4 quadrats per plot. There are three replicate plots per plot type (Seagrass, Seagrass+Tiles). NOTE: seagrass canopy height was not measured at the one-month monitoring time point.
