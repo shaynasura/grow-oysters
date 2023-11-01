@@ -35,7 +35,8 @@ library(tidyr)
 library(dplyr)
 library(here)
 library(ggplot2)
-library(ggbeeswarm)
+# library(ggbeeswarm)
+library(scales)
 
 ```
 
@@ -154,7 +155,7 @@ for (k in ranges){
 ### Calculating Summary Statistics
 
 
-```{r}
+```{r summary calculations}
 #| echo: false
 
 summary_calcs <- list(
@@ -218,7 +219,8 @@ oyst_abundance_summary_plot <- oyst_abundance_summary_tile %>%
            Plot_Type,
            Tile_Type) %>% 
   summarize(across(c(Oyster_Abundance_Mean_Mean),
-                   summary_calcs))
+                   summary_calcs)) %>% 
+  ungroup()
 
 # summarize the oyster data by plot type but for all 4 tiles, regardless of predator treatment (predator vs. no-predator cues)
 oyst_abundance_summary_plot_type <- oyst_abundance_summary_tile %>% 
@@ -230,7 +232,8 @@ oyst_abundance_summary_plot_type <- oyst_abundance_summary_tile %>%
   group_by(Date,
            Plot_Type) %>% 
   summarize(across(c(Oyster_Abundance_Mean_Mean),
-                   summary_calcs))
+                   summary_calcs)) %>% 
+  ungroup()
 
 ```
 
@@ -271,7 +274,8 @@ oyst_size_summary_plot <- oyst_size_summary_tile %>%
            Plot_Type,
            Tile_Type) %>% 
   summarize(across(c(Oyster_Length_mm_Mean_Mean),
-                   summary_calcs))
+                   summary_calcs)) %>% 
+  ungroup()
 
 # summarize the oyster data by plot type but for all 4 tiles, regardless of predator treatment (predator vs. no-predator cues)
 oyst_size_summary_plot_type <- oyst_size_summary_tile %>% 
@@ -365,13 +369,20 @@ seagrass_custom_ggplot <- function(summary1, variable_name, plot_type1, plot_typ
                                                   seed = 155),
                show.legend = TRUE) +
     ylim(y_axis_min, y_axis_max) +
-    labs(x = "Unit for which values are calculated",
-         y = paste(y_axis_label," (mean±SE)")) +
+    labs(x = "",
+         # x = "Unit for which values are calculated",
+         y = paste(y_axis_label,"(mean±SE)")) +
     scale_color_manual(values = c("Seagrass+Tiles" = "black", "Seagrass" = "black"), name = "Plot Type") +
     scale_shape_manual(values = c("Seagrass+Tiles" = 21, "Seagrass" = 21), name = "Plot Type") +
     scale_fill_manual(values = c("Seagrass+Tiles" = "lightgreen", "Seagrass" = "darkgreen"), name = "Plot Type") +
     # guides(shape = guide_legend(override.aes = list(size = 4)))+
-    theme(panel.border = element_blank())
+    theme(panel.border = element_blank(),
+          axis.title = element_text(face = "bold",
+                                    size = 16),
+          axis.text.x = element_text(face = "bold",
+                                     size = 14),
+          axis.text.y = element_text(size = 12),
+          strip.text = element_text(size = 14))
   
   return(gg)
 }
@@ -458,8 +469,8 @@ FIG_seagrass_percent_cover
 oyst_abundance_summary_tile <- oyst_abundance_summary_tile %>%
   select(-Plot_Label, -Tile_Tag) %>% 
   mutate(data_type = ifelse(Tile_Type == "Control", "Unseeded Tile",
-                            ifelse(Tile_Type == "No-predator", "No-Pred Tile",
-                                   ifelse(Tile_Type == "Predator", "Predator Tile", "ERROR"))))
+                            ifelse(Tile_Type == "No-predator", "Ambient Cue Tile",
+                                   ifelse(Tile_Type == "Predator", "Predator Cue Tile", "ERROR"))))
 
 
 
@@ -472,8 +483,8 @@ oyst_abundance_summary_plot <- oyst_abundance_summary_plot %>%
 
 oyst_abundance_summary_plot <- oyst_abundance_summary_plot %>%
   mutate(data_type = ifelse(Tile_Type == "Control", "Unseeded Plot",
-                            ifelse(Tile_Type == "No-predator", "No-Pred Plot",
-                                   ifelse(Tile_Type == "Predator", "Predator Plot", "ERROR"))))
+                            ifelse(Tile_Type == "No-predator", "Ambient Cue Plot",
+                                   ifelse(Tile_Type == "Predator", "Predator Cue Plot", "ERROR"))))
 
 
 # for oyst_abundance_summary_plot_type summary table
@@ -491,15 +502,33 @@ oyst_abundance_summary_fig <- bind_rows(oyst_abundance_summary_tile,
                                         oyst_abundance_summary_plot,
                                         oyst_abundance_summary_plot_type)
 
+oyst_abundance_summary_fig <- oyst_abundance_summary_fig %>%
+  add_row(Date = "8/2/23",
+          Plot_Type = "Seagrass+Tiles",
+          Tile_Type = "Control",
+          data_type = "Unseeded Tile") %>% 
+  add_row(Date = "8/2/23",
+          Plot_Type = "Tiles",
+          Tile_Type = "Control",
+          data_type = "Unseeded Tile") %>% 
+  add_row(Date = "8/2/23",
+          Plot_Type = "Seagrass+Tiles",
+          Tile_Type = "All",
+          data_type = "Unseeded Plot") %>% 
+  add_row(Date = "8/2/23",
+          Plot_Type = "Tiles",
+          Tile_Type = "All",
+          data_type = "Unseeded Plot")
+
 
 # #check order of levels for the data_type variable
 # levels(as.factor(oyst_abundance_summary_fig$data_type))
 # 
 # #reorder the levels for the data_type variable
-# levels(oyst_abundance_summary_fig$data_type) <- c("Unseeded Tile","Unseeded Plot", "No-Predator Tile", "No-Predator Plot",
-#                                                  "Predator Tile", "Predator Plot", "Overall Plot")
+# levels(oyst_abundance_summary_fig$data_type) <- c("Unseeded Tile","Unseeded Plot", "Ambient Cue Tile", "Ambient Cue Plot",
+#                                                  "Predator Cue Tile", "Predator Cue Plot", "Overall Plot")
 
-oyst_abundance_summary_fig$data_type <- factor(oyst_abundance_summary_fig$data_type, levels = c("Unseeded Tile","Unseeded Plot", "No-Pred Tile", "No-Pred Plot", "Predator Tile", "Predator Plot", "Overall Plot"))
+oyst_abundance_summary_fig$data_type <- factor(oyst_abundance_summary_fig$data_type, levels = c("Unseeded Tile","Unseeded Plot", "Ambient Cue Tile", "Ambient Cue Plot", "Predator Cue Tile", "Predator Cue Plot", "Overall Plot"))
 
 # #check order of level for the data_type variable
 # levels(oyst_abundance_summary_fig$data_type)
@@ -516,8 +545,7 @@ oyst_abundance_summary_fig$data_type <- factor(oyst_abundance_summary_fig$data_t
 
 ## IMPROVEMENTS TO DO
 
-### figure out appropriate size to save this as, including appropriate font size for x-axis labels.
-### return to seagrass data and figure and remake in this same configuration?? - need to figure out why those canopy height points are being plotted incorrectly.
+
 
 #### Duplicate for oyster size data!
 ```{r}
@@ -603,13 +631,24 @@ oyster_custom_ggplot <- function(summary1, variable_name, plot_type1, plot_type2
                                                   seed = 155),
                show.legend = TRUE) +
     # ylim(y_axis_min, y_axis_max) +
-    labs(x = "Unit for which values are calculated",
-         y = paste(y_axis_label," (mean±SE)")) +
+    labs(x = "",
+         # x = "Unit for which values are calculated",
+         y = paste(y_axis_label,"(mean±SE)")) +
     scale_color_manual(values = c("Seagrass+Tiles" = "black", "Tiles" = "black"), name = "Plot Type") +
     scale_shape_manual(values = c("Seagrass+Tiles" = 21, "Tiles" = 21), name = "Plot Type") +
     scale_fill_manual(values = c("Seagrass+Tiles" = "lightblue", "Tiles" = "coral"), name = "Plot Type") +
     # guides(shape = guide_legend(override.aes = list(size = 4)))+
-    theme(panel.border = element_blank())
+    scale_x_discrete(labels = label_wrap(9)) + 
+    theme(panel.border = element_blank(),
+          axis.title = element_text(face = "bold",
+                                    size = 16),
+          axis.text.x = element_text(face = "bold",
+                                     size = 13),
+          axis.text.y = element_text(size = 14),
+          strip.text = element_text(size = 16),
+          legend.position = c(1, 1),
+          legend.justification = c("right","top"),
+          legend.box.background = element_rect(color = "black", linewidth = 1))
   
   return(gg)
 }
@@ -629,7 +668,7 @@ Fig_1_Oyster_Abundance
 
 
 Fig_1_Oyster_Abundance
-ggsave("../plots/Fig_1_oyster_abundance.pdf", width = 8.5, height = 6, units = "in")
+ggsave("../plots/Fig_1_oyster_abundance.pdf", width = 8.5, height = 6.5, units = "in")
 
 # Fig_2_Oyster_Size
 # ggsave("../plots/Fig_2_oyster_size.pdf", width = 8.5, height = 6, units = "in")
