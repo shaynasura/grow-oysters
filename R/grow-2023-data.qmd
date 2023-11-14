@@ -680,82 +680,17 @@ oyst_size_summary_fig$data_type <- factor(oyst_size_summary_fig$data_type, level
 ```
 
 
-## Trying a different way to plot the oyster data
-
-
-## IMPROVEMENTS TO DO
-
-
-
-#### Duplicate for oyster size data!
-```{r}
-
-# oyster_custom_ggplot <- function(summary1, summary2, summary3, variable_name, y_axis_label, y_axis_min, y_axis_max) {
-FIG_oyst_abundance <- ggplot(oyst_abundance_summary_fig, aes(x = data_type, y = Oyster_Abundance_Mean, group = Plot_Type)) +
-    facet_wrap(~Date, nrow = 2, ncol = 1,
-               labeller = labeller(Date = c("8/2/23" = "Initial", "9/6/23" = "One Month Post-Deployment")),
-               scales = "free") +
-    theme_classic() + 
-    # geom_errorbar(aes(ymin = Oyster_Abundance_Mean - Oyster_Abundance_SE,
-    #                   ymax = Oyster_Abundance_Mean + Oyster_Abundance_SE,
-    #                   group = Plot_Type,
-    #                   shape = Plot_Type, fill = Plot_Type, color = Plot_Type),
-    #               width = 0.1,
-    #               position = position_jitterdodge(jitter.width = 0.3,
-    #                                               dodge.width = 0.5,
-    #                                               seed = 123)) +
-    #               # position = position_dodge(width = 0.5)) +
-    geom_linerange(aes(ymin = Oyster_Abundance_Mean - Oyster_Abundance_SE,
-                      ymax = Oyster_Abundance_Mean + Oyster_Abundance_SE,
-                      group = Plot_Type,
-                      color = Plot_Type),
-                  # width = 0.1,
-                  position = position_jitterdodge(jitter.width = 0.4,
-                                                  dodge.width = 1,
-                                                  seed = 155),
-                  linewidth = 0.8) +
-    geom_point(size = 3,
-               aes(shape = Plot_Type, fill = Plot_Type, color = Plot_Type),
-               position = position_jitterdodge(jitter.width = 0.4,
-                                                  dodge.width = 1,
-                                                  seed = 155),
-               # position = position_dodge(width = 0.5),
-               show.legend = TRUE) +
-    labs(x = "Tile or Plot Type(s) Included in Values",
-         y = "Oyster Abundance (mean±SE)") +
-         # ,
-         # color = "Plot Type",
-         # shape = "Plot Type",
-         # fill = "Plot Type") +
-    scale_color_manual(values = c("Seagrass+Tiles" = "black", "Tiles" = "black"), name = "Plot Type") +
-    scale_shape_manual(values = c("Seagrass+Tiles" = 21, "Tiles" = 21), name = "Plot Type") +
-    scale_fill_manual(values = c("Seagrass+Tiles" = "lightblue", "Tiles" = "coral"), name = "Plot Type") +
-    # guides(shape = guide_legend(override.aes = list(size = 4)))+
-    theme(panel.border = element_blank())
-
-FIG_oyst_abundance
-
-
-## IMPROVEMENTS TO DO
-
-### can I jitter the points for those that are overlapping within groups?
-### reorder the factor levels for x-axis categories.
-### figure out appropriate size to save this as, including appropriate font size for x-axis labels.
-
-#### Duplicate for oyster size data!
-
-
-```
-
 
 ```{r oyster custom ggplot function}
 
-oyster_custom_ggplot <- function(summary1, variable_name, plot_type1, plot_type2, y_axis_label, y_axis_min, y_axis_max) {
+
+oyster_custom_ggplot <- function(summary1, variable_name, plot_type1, plot_type2, y_axis_label, axis_y_limits, y_axis_min, y_axis_max) {
   gg <- ggplot(summary1, aes(x = data_type, y = !!sym(paste0(variable_name, "_Mean")), group = Plot_Type)) +
         facet_wrap(~oyst_facets, nrow = 2, ncol = 2,
                    # labeller = labeller(Date = c("8/2/23" = "a) Initial", "9/6/23" = "b) One Month Post-Deployment")),
                # labeller = labeller(Date = c("8/2/23" = "a) Initial", "9/6/23" = "b) One Month Post-Deployment")),
                scales = "free") +
+        geom_point(data = axis_y_limits, aes(x = data_type, y = value, group = Plot_Type), alpha = 0) +
     theme_classic() + 
     geom_linerange(aes(ymin = !!sym(paste0(variable_name, "_Mean")) - !!sym(paste0(variable_name, "_SE")),
                       ymax = !!sym(paste0(variable_name, "_Mean")) + !!sym(paste0(variable_name, "_SE")),
@@ -772,6 +707,7 @@ oyster_custom_ggplot <- function(summary1, variable_name, plot_type1, plot_type2
                                                   seed = 155),
                show.legend = TRUE) +
     # ylim(y_axis_min, y_axis_max) +
+
     labs(x = "",
          # x = "Unit for which values are calculated",
          y = paste(y_axis_label,"(mean±SE)")) +
@@ -794,15 +730,36 @@ oyster_custom_ggplot <- function(summary1, variable_name, plot_type1, plot_type2
   return(gg)
 }
 
-```
 
+
+
+```
 
 
 
 ```{r Oyster Figures}
 
+
+
+
 ## Oyster Abundance Figure
-Fig_1_Oyster_Abundance <- oyster_custom_ggplot(oyst_abundance_summary_fig, "Oyster_Abundance", y_axis_label = "Oyster Abundance", y_axis_min = 0, y_axis_max = 35)
+
+axis_y_limits <- data.frame(data_type = rep(c("Unseeded",
+                                          "Ambient Cue",
+                                          "Predator Cue",
+                                          "Overall Plot"), each = 8),
+                            oyst_facets = rep(c("a) Initial - plots",
+                                         "b) Initial - tiles",
+                                         "c) 1 Month Post-Deployment - plots",
+                                         "d) 1 Month Post-Deployment - tiles"), 2),
+                            Plot_Type = rep(c("Seagrass+Tiles", "Tiles"), each = 4),
+                            value = rep(c(25,25,1.5,1.5),2))
+
+axis_y_limits <- axis_y_limits[-c(26,28,30,32),]
+axis_y_limits$data_type <- factor(axis_y_limits$data_type, levels = c("Unseeded", "Ambient Cue", "Predator Cue", "Overall Plot"))
+
+
+Fig_1_Oyster_Abundance <- oyster_custom_ggplot(oyst_abundance_summary_fig, "Oyster_Abundance", y_axis_label = "Oyster Abundance", axis_y_limits = axis_y_limits, y_axis_min = 0, y_axis_max = 35)
 
 Fig_1_Oyster_Abundance
 
@@ -810,14 +767,175 @@ ggsave("../plots/Fig_1_oyster_abundance_v2.pdf", width = 8.5, height = 6.5, unit
 
 
 ## Oyster Size Figure
-Fig_2_Oyster_Size <- oyster_custom_ggplot(oyst_size_summary_fig, "Oyster_Length_mm", y_axis_label = "Oyster Size (mm)", y_axis_min = 0, y_axis_max = 30)
+Fig_2_Oyster_Size <- oyster_custom_ggplot(oyst_size_summary_fig, "Oyster_Length_mm", y_axis_label = "Oyster Length (mm)", y_axis_min = 8, y_axis_max = 22)
 
 Fig_2_Oyster_Size
 
-ggsave("../plots/Fig_2_oyster_size.pdf", width = 8.5, height = 6.5, units = "in")
+ggsave("../plots/Fig_2_oyster_size_v2.pdf", width = 8.5, height = 6.5, units = "in")
 
 ```
 
+
+
+
+## Change in Seagrass Metrics
+
+```{r calculating change in seagrass percent cover and canopy height}
+
+## Seagrass Percent Cover Data
+
+### Initial Percent Cover
+init_sg_perc_cover_seagrass_tiles <- sg_summary_plot_type %>% 
+  filter(Date == "7/31/2023" & Plot_Type == "Seagrass+Tiles") %>% 
+  pull(Percent_Cover_Mean_Mean)
+
+init_sg_perc_cover_only_seagrass <- sg_summary_plot_type %>% 
+  filter(Date == "7/31/2023" & Plot_Type == "Seagrass") %>% 
+  pull(Percent_Cover_Mean_Mean)
+
+
+### One-month post deployment Percent Cover
+month_1_sg_perc_cover_seagrass_tiles <- sg_summary_plot_type %>% 
+  filter(Date == "9/6/23" & Plot_Type == "Seagrass+Tiles") %>% 
+  pull(Percent_Cover_Mean_Mean)
+
+month_1_sg_perc_cover_only_seagrass <- sg_summary_plot_type %>% 
+  filter(Date == "9/6/23" & Plot_Type == "Seagrass") %>% 
+  pull(Percent_Cover_Mean_Mean)
+
+
+init_sg_perc_cover_seagrass_tiles
+init_sg_perc_cover_only_seagrass
+month_1_sg_perc_cover_seagrass_tiles
+month_1_sg_perc_cover_only_seagrass
+  
+
+change_sg_perc_cover_seagrass_tiles <- (month_1_sg_perc_cover_seagrass_tiles - init_sg_perc_cover_seagrass_tiles) / init_sg_perc_cover_seagrass_tiles * 100
+change_sg_perc_cover_only_seagrass <- (month_1_sg_perc_cover_only_seagrass - init_sg_perc_cover_only_seagrass) / init_sg_perc_cover_only_seagrass * 100
+
+
+change_sg_perc_cover_seagrass_tiles
+change_sg_perc_cover_only_seagrass
+
+
+## Seagrass Canopy Height Data
+
+
+### Initial Canopy Height
+init_sg_canopy_ht_seagrass_tiles <- sg_summary_plot_type %>% 
+  filter(Date == "7/31/2023" & Plot_Type == "Seagrass+Tiles") %>% 
+  pull(Canopy_Height_cm_Mean_Mean)
+
+init_sg_canopy_ht_only_seagrass <- sg_summary_plot_type %>% 
+  filter(Date == "7/31/2023" & Plot_Type == "Seagrass") %>% 
+  pull(Canopy_Height_cm_Mean_Mean)
+
+
+### One-month post deployment Percent Cover - NA because canopy height was not assessed at this time point
+# month_1_sg_canopy_ht_seagrass_tiles <- sg_summary_plot_type %>% 
+#   filter(Date == "9/6/23" & Plot_Type == "Seagrass+Tiles") %>% 
+#   pull(Canopy_Height_cm_Mean_Mean)
+# 
+# month_1_sg_canopy_ht_only_seagrass <- sg_summary_plot_type %>% 
+#   filter(Date == "9/6/23" & Plot_Type == "Seagrass") %>% 
+#   pull(Canopy_Height_cm_Mean_Mean)
+
+
+### UNCOMMENT BELOW WHEN HAVE MORE CANOPY HEIGHT DATA FOR SEAGRASS
+# init_sg_canopy_ht_seagrass_tiles
+# init_sg_canopy_ht_only_seagrass
+# 
+#   
+# ## calculations of percent change - update for future data on canopy height
+# change_sg_canopy_ht_seagrass_tiles <- (#FILL IN# 
+#   - init_sg_canopy_ht_seagrass_tiles) / init_sg_canopy_ht_seagrass_tiles * 100
+# change_sg_canopy_ht_only_seagrass <- (#FILL IN# 
+#   - init_sg_canopy_ht_only_seagrass) / init_sg_canopy_ht_only_seagrass * 100
+# 
+# 
+# change_sg_canopy_ht_seagrass_tiles
+# change_sg_canopy_ht_only_seagrass
+
+
+```
+
+
+
+
+
+## Change in Oyster Metrics
+
+```{r calculating change in oyster abundance and length}
+
+## Oyster Abundance
+
+init_oyst_abund_seagrass_tiles <- oyst_abundance_summary_plot_type %>% 
+  filter(Date == "8/2/23" & Plot_Type == "Seagrass+Tiles") %>% 
+  pull(Oyster_Abundance_Mean)
+
+
+init_oyst_abund_only_tiles <- oyst_abundance_summary_plot_type %>% 
+  filter(Date == "8/2/23" & Plot_Type == "Tiles") %>% 
+  pull(Oyster_Abundance_Mean)
+
+
+month_1_oyst_abund_seagrass_tiles <- oyst_abundance_summary_plot_type %>% 
+  filter(Date == "9/6/23" & Plot_Type == "Seagrass+Tiles") %>% 
+  pull(Oyster_Abundance_Mean)
+
+
+month_1_oyst_abund_only_tiles <- oyst_abundance_summary_plot_type %>% 
+  filter(Date == "9/6/23" & Plot_Type == "Tiles") %>% 
+  pull(Oyster_Abundance_Mean)
+
+
+init_oyst_abund_seagrass_tiles
+init_oyst_abund_only_tiles
+month_1_oyst_abund_seagrass_tiles
+month_1_oyst_abund_only_tiles
+  
+
+change_oyst_abund_seagrass_tiles <- (month_1_oyst_abund_seagrass_tiles - init_oyst_abund_seagrass_tiles) / init_oyst_abund_seagrass_tiles * 100
+change_oyst_abund_only_tiles <- (month_1_oyst_abund_only_tiles - init_oyst_abund_only_tiles) / init_oyst_abund_only_tiles * 100
+
+
+change_oyst_abund_seagrass_tiles
+change_oyst_abund_only_tiles
+
+
+## Oyster Length
+
+init_oyst_length_seagrass_tiles <- oyst_size_summary_plot_type %>% 
+  filter(Date == "8/2/23" & Plot_Type == "Seagrass+Tiles") %>% 
+  pull(Oyster_Length_mm_Mean)
+
+init_oyst_length_only_tiles <- oyst_size_summary_plot_type %>% 
+  filter(Date == "8/2/23" & Plot_Type == "Tiles") %>% 
+  pull(Oyster_Length_mm_Mean)
+
+month_1_oyst_length_seagrass_tiles <- oyst_size_summary_plot_type %>% 
+  filter(Date == "9/6/23" & Plot_Type == "Seagrass+Tiles") %>% 
+  pull(Oyster_Length_mm_Mean)
+
+month_1_oyst_length_only_tiles <- oyst_size_summary_plot_type %>% 
+  filter(Date == "9/6/23" & Plot_Type == "Tiles") %>% 
+  pull(Oyster_Length_mm_Mean)
+
+
+init_oyst_length_seagrass_tiles
+init_oyst_length_only_tiles
+month_1_oyst_length_seagrass_tiles
+month_1_oyst_length_only_tiles
+  
+
+change_oyst_length_seagrass_tiles <- (month_1_oyst_length_seagrass_tiles - init_oyst_length_seagrass_tiles) / init_oyst_length_seagrass_tiles * 100
+change_oyst_length_only_tiles <- (month_1_oyst_length_only_tiles - init_oyst_length_only_tiles) / init_oyst_length_only_tiles * 100
+
+
+change_oyst_length_seagrass_tiles
+change_oyst_length_only_tiles
+
+```
 
 
 
@@ -936,6 +1054,70 @@ print(seagrass_canopy_height_fig)
 
 
 ### Oyster Figures
+
+
+
+```{r oyster ggplot standalone}
+
+# oyster_custom_ggplot <- function(summary1, summary2, summary3, variable_name, y_axis_label, y_axis_min, y_axis_max) {
+FIG_oyst_abundance <- ggplot(oyst_abundance_summary_fig, aes(x = data_type, y = Oyster_Abundance_Mean, group = Plot_Type)) +
+    facet_wrap(~Date, nrow = 2, ncol = 1,
+               labeller = labeller(Date = c("8/2/23" = "Initial", "9/6/23" = "One Month Post-Deployment")),
+               scales = "free") +
+    theme_classic() + 
+    # geom_errorbar(aes(ymin = Oyster_Abundance_Mean - Oyster_Abundance_SE,
+    #                   ymax = Oyster_Abundance_Mean + Oyster_Abundance_SE,
+    #                   group = Plot_Type,
+    #                   shape = Plot_Type, fill = Plot_Type, color = Plot_Type),
+    #               width = 0.1,
+    #               position = position_jitterdodge(jitter.width = 0.3,
+    #                                               dodge.width = 0.5,
+    #                                               seed = 123)) +
+    #               # position = position_dodge(width = 0.5)) +
+    geom_linerange(aes(ymin = Oyster_Abundance_Mean - Oyster_Abundance_SE,
+                      ymax = Oyster_Abundance_Mean + Oyster_Abundance_SE,
+                      group = Plot_Type,
+                      color = Plot_Type),
+                  # width = 0.1,
+                  position = position_jitterdodge(jitter.width = 0.4,
+                                                  dodge.width = 1,
+                                                  seed = 155),
+                  linewidth = 0.8) +
+    geom_point(size = 3,
+               aes(shape = Plot_Type, fill = Plot_Type, color = Plot_Type),
+               position = position_jitterdodge(jitter.width = 0.4,
+                                                  dodge.width = 1,
+                                                  seed = 155),
+               # position = position_dodge(width = 0.5),
+               show.legend = TRUE) +
+    labs(x = "Tile or Plot Type(s) Included in Values",
+         y = "Oyster Abundance (mean±SE)") +
+         # ,
+         # color = "Plot Type",
+         # shape = "Plot Type",
+         # fill = "Plot Type") +
+    scale_color_manual(values = c("Seagrass+Tiles" = "black", "Tiles" = "black"), name = "Plot Type") +
+    scale_shape_manual(values = c("Seagrass+Tiles" = 21, "Tiles" = 21), name = "Plot Type") +
+    scale_fill_manual(values = c("Seagrass+Tiles" = "lightblue", "Tiles" = "coral"), name = "Plot Type") +
+    # guides(shape = guide_legend(override.aes = list(size = 4)))+
+    theme(panel.border = element_blank())
+
+FIG_oyst_abundance
+
+
+## IMPROVEMENTS TO DO
+
+### can I jitter the points for those that are overlapping within groups?
+### reorder the factor levels for x-axis categories.
+### figure out appropriate size to save this as, including appropriate font size for x-axis labels.
+
+#### Duplicate for oyster size data!
+
+
+```
+
+
+
 
 ```{r providing an x-axis jitter value for all oyster datasets}
 #| echo: false
