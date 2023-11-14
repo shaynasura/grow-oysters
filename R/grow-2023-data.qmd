@@ -7,8 +7,6 @@ editor: visual
 
 
 
-<!-- TO DO - FIGURE OUT WHY THE SEAGRASS CANOPY HEIGHT AVERAGES FOR EACH PLOT ARE NOT PLOTTING IN THE RIGHT LOCATION FOR THEIR Y_VALUES!!! -->
-
 
 
 ## Data Information
@@ -82,6 +80,7 @@ glimpse(oyster_abundance)
 
 # we also have a plot label of "ST5" which seems like it might be a type.
 ## Shayna commented on this on the google sheet for Eme to double check. In the meantime, Shayna is manually changing this to ST3 in her downloaded .csv file of these data because it seems highly unlikely that it's anything else.
+### Eme confirmed this was a typo and updated it accordingly. Shayna is still using the previously downloaded and corrected google sheet / .csv file for this script.
 
 ```
 
@@ -455,8 +454,9 @@ FIG_seagrass_percent_cover
 
 #### Oyster Data Figures
 
+##### Oyster Abundance
 
-```{r combining oyster summary tables into one table for plotting}
+```{r combining oyster abundance summary tables into one table for plotting}
 #| echo: false
 #| warning: false
 #| message: false
@@ -468,9 +468,16 @@ FIG_seagrass_percent_cover
 # for oyst_abundance_summary_tile summary table
 oyst_abundance_summary_tile <- oyst_abundance_summary_tile %>%
   select(-Plot_Label, -Tile_Tag) %>% 
-  mutate(data_type = ifelse(Tile_Type == "Control", "Unseeded Tile",
-                            ifelse(Tile_Type == "No-predator", "Ambient Cue Tile",
-                                   ifelse(Tile_Type == "Predator", "Predator Cue Tile", "ERROR"))))
+    mutate(data_type = ifelse(Tile_Type == "Control", "Unseeded",
+                            ifelse(Tile_Type == "No-predator", "Ambient Cue",
+                                   ifelse(Tile_Type == "Predator", "Predator Cue", "ERROR")))) %>% 
+    mutate(tile_or_plot = "Tile")
+
+
+  # mutate(data_type = ifelse(Tile_Type == "Control", "Unseeded Tile",
+  #                           ifelse(Tile_Type == "No-predator", "Ambient Cue Tile",
+  #                                  ifelse(Tile_Type == "Predator", "Predator Cue Tile", "ERROR")))) %>% 
+
 
 
 
@@ -482,9 +489,14 @@ oyst_abundance_summary_plot <- oyst_abundance_summary_plot %>%
          Oyster_Abundance_SE = Oyster_Abundance_Mean_Mean_SE)
 
 oyst_abundance_summary_plot <- oyst_abundance_summary_plot %>%
-  mutate(data_type = ifelse(Tile_Type == "Control", "Unseeded Plot",
-                            ifelse(Tile_Type == "No-predator", "Ambient Cue Plot",
-                                   ifelse(Tile_Type == "Predator", "Predator Cue Plot", "ERROR"))))
+  mutate(data_type = ifelse(Tile_Type == "Control", "Unseeded",
+                            ifelse(Tile_Type == "No-predator", "Ambient Cue",
+                                   ifelse(Tile_Type == "Predator", "Predator Cue", "ERROR")))) %>% 
+  mutate(tile_or_plot = "Plot")
+
+  # mutate(data_type = ifelse(Tile_Type == "Control", "Unseeded Plot",
+  #                           ifelse(Tile_Type == "No-predator", "Ambient Cue Plot",
+  #                                  ifelse(Tile_Type == "Predator", "Predator Cue Plot", "ERROR")))) %>% 
 
 
 # for oyst_abundance_summary_plot_type summary table
@@ -495,7 +507,8 @@ oyst_abundance_summary_plot_type <- oyst_abundance_summary_plot_type %>%
          Oyster_Abundance_SE = Oyster_Abundance_Mean_Mean_SE) %>% 
   mutate(data_type = "Overall Plot",
          Tile_Type = "All") %>% 
-  relocate(Tile_Type, .after = Plot_Type)
+  relocate(Tile_Type, .after = Plot_Type) %>% 
+  mutate(tile_or_plot = "Plot")
 
 
 oyst_abundance_summary_fig <- bind_rows(oyst_abundance_summary_tile,
@@ -506,19 +519,34 @@ oyst_abundance_summary_fig <- oyst_abundance_summary_fig %>%
   add_row(Date = "8/2/23",
           Plot_Type = "Seagrass+Tiles",
           Tile_Type = "Control",
-          data_type = "Unseeded Tile") %>% 
+          data_type = "Unseeded",
+          tile_or_plot = "Tile") %>% 
   add_row(Date = "8/2/23",
           Plot_Type = "Tiles",
           Tile_Type = "Control",
-          data_type = "Unseeded Tile") %>% 
+          data_type = "Unseeded",
+          tile_or_plot = "Tile") %>% 
   add_row(Date = "8/2/23",
           Plot_Type = "Seagrass+Tiles",
-          Tile_Type = "All",
-          data_type = "Unseeded Plot") %>% 
+          Tile_Type = "Control",
+          data_type = "Unseeded",
+          tile_or_plot = "Plot") %>% 
   add_row(Date = "8/2/23",
           Plot_Type = "Tiles",
-          Tile_Type = "All",
-          data_type = "Unseeded Plot")
+          Tile_Type = "Control",
+          data_type = "Unseeded",
+          tile_or_plot = "Plot")
+
+
+oyst_abundance_summary_fig <- oyst_abundance_summary_fig %>%
+  mutate(oyst_facets = ifelse(Date == "8/2/23" & tile_or_plot == "Tile", "b) Initial - tiles",
+                         ifelse(Date == "8/2/23" & tile_or_plot == "Plot", "a) Initial - plots",
+                                ifelse(Date == "9/6/23" & tile_or_plot == "Tile", "d) 1 Month Post-Deployment - tiles",
+                                       ifelse(Date == "9/6/23" & tile_or_plot == "Plot", "c) 1 Month Post-Deployment - plots", "ERROR")))))
+
+
+
+oyst_abundance_summary_fig$data_type <- factor(oyst_abundance_summary_fig$data_type, levels = c("Unseeded", "Ambient Cue", "Predator Cue", "Overall Plot"))
 
 
 # #check order of levels for the data_type variable
@@ -528,7 +556,7 @@ oyst_abundance_summary_fig <- oyst_abundance_summary_fig %>%
 # levels(oyst_abundance_summary_fig$data_type) <- c("Unseeded Tile","Unseeded Plot", "Ambient Cue Tile", "Ambient Cue Plot",
 #                                                  "Predator Cue Tile", "Predator Cue Plot", "Overall Plot")
 
-oyst_abundance_summary_fig$data_type <- factor(oyst_abundance_summary_fig$data_type, levels = c("Unseeded Tile","Unseeded Plot", "Ambient Cue Tile", "Ambient Cue Plot", "Predator Cue Tile", "Predator Cue Plot", "Overall Plot"))
+# oyst_abundance_summary_fig$data_type <- factor(oyst_abundance_summary_fig$data_type, levels = c("Unseeded Tile","Unseeded Plot", "Ambient Cue Tile", "Ambient Cue Plot", "Predator Cue Tile", "Predator Cue Plot", "Overall Plot"))
 
 # #check order of level for the data_type variable
 # levels(oyst_abundance_summary_fig$data_type)
@@ -537,7 +565,119 @@ oyst_abundance_summary_fig$data_type <- factor(oyst_abundance_summary_fig$data_t
 
 
 
+##### Oyster Size
 
+```{r combining oyster size data summary tables into one table for plotting}
+
+#| echo: false
+#| warning: false
+#| message: false
+
+
+#syntax for rename is NEW name first and then old/existing column name
+
+
+# for oyst_size_summary_tile summary table
+oyst_size_summary_tile <- oyst_size_summary_tile %>%
+  select(-Plot_Label, -Tile_Tag) %>% 
+    mutate(data_type = ifelse(Tile_Type == "Control", "Unseeded",
+                            ifelse(Tile_Type == "No-predator", "Ambient Cue",
+                                   ifelse(Tile_Type == "Predator", "Predator Cue", "ERROR")))) %>% 
+    mutate(tile_or_plot = "Tile")
+
+
+
+
+# for oyst_size_summary_plot summary table
+oyst_size_summary_plot <- oyst_size_summary_plot %>% 
+  rename(Oyster_Length_mm_Mean = Oyster_Length_mm_Mean_Mean_Mean,
+         Oyster_Length_mm_n = Oyster_Length_mm_Mean_Mean_n,
+         Oyster_Length_mm_SD = Oyster_Length_mm_Mean_Mean_SD,
+         Oyster_Length_mm_SE = Oyster_Length_mm_Mean_Mean_SE)
+
+oyst_size_summary_plot <- oyst_size_summary_plot %>%
+  mutate(data_type = ifelse(Tile_Type == "Control", "Unseeded",
+                            ifelse(Tile_Type == "No-predator", "Ambient Cue",
+                                   ifelse(Tile_Type == "Predator", "Predator Cue", "ERROR")))) %>% 
+  mutate(tile_or_plot = "Plot")
+
+
+
+# for oyst_size_summary_plot_type summary table
+oyst_size_summary_plot_type <- oyst_size_summary_plot_type %>% 
+  rename(Oyster_Length_mm_Mean = Oyster_Length_mm_Mean_Mean_Mean,
+         Oyster_Length_mm_n = Oyster_Length_mm_Mean_Mean_n,
+         Oyster_Length_mm_SD = Oyster_Length_mm_Mean_Mean_SD,
+         Oyster_Length_mm_SE = Oyster_Length_mm_Mean_Mean_SE) %>% 
+  mutate(data_type = "Overall Plot",
+         Tile_Type = "All") %>% 
+  relocate(Tile_Type, .after = Plot_Type) %>% 
+  mutate(tile_or_plot = "Plot")
+
+
+# create summary table from above tables
+oyst_size_summary_fig <- bind_rows(oyst_size_summary_tile,
+                                   oyst_size_summary_plot,
+                                   oyst_size_summary_plot_type)
+
+
+# add in lack of data for initial unseeded tiles
+oyst_size_summary_fig <- oyst_size_summary_fig %>%
+  add_row(Date = "8/2/23",
+          Plot_Type = "Seagrass+Tiles",
+          Tile_Type = "Control",
+          data_type = "Unseeded",
+          tile_or_plot = "Tile") %>% 
+  add_row(Date = "8/2/23",
+          Plot_Type = "Tiles",
+          Tile_Type = "Control",
+          data_type = "Unseeded",
+          tile_or_plot = "Tile") %>% 
+  add_row(Date = "8/2/23",
+          Plot_Type = "Seagrass+Tiles",
+          Tile_Type = "Control",
+          data_type = "Unseeded",
+          tile_or_plot = "Plot") %>% 
+  add_row(Date = "8/2/23",
+          Plot_Type = "Tiles",
+          Tile_Type = "Control",
+          data_type = "Unseeded",
+          tile_or_plot = "Plot") %>%
+  add_row(Date = "9/6/23",
+          Plot_Type = "Seagrass+Tiles",
+          Tile_Type = "Control",
+          data_type = "Unseeded",
+          tile_or_plot = "Tile") %>% 
+  add_row(Date = "9/6/23",
+          Plot_Type = "Tiles",
+          Tile_Type = "Control",
+          data_type = "Unseeded",
+          tile_or_plot = "Tile") %>% 
+  add_row(Date = "9/6/23",
+          Plot_Type = "Seagrass+Tiles",
+          Tile_Type = "Control",
+          data_type = "Unseeded",
+          tile_or_plot = "Plot") %>% 
+  add_row(Date = "9/6/23",
+          Plot_Type = "Tiles",
+          Tile_Type = "Control",
+          data_type = "Unseeded",
+          tile_or_plot = "Plot")
+
+
+oyst_size_summary_fig <- oyst_size_summary_fig %>%
+  mutate(oyst_facets = ifelse(Date == "8/2/23" & tile_or_plot == "Tile", "b) Initial - tiles",
+                         ifelse(Date == "8/2/23" & tile_or_plot == "Plot", "a) Initial - plots",
+                                ifelse(Date == "9/6/23" & tile_or_plot == "Tile", "d) 1 Month Post-Deployment - tiles",
+                                       ifelse(Date == "9/6/23" & tile_or_plot == "Plot", "c) 1 Month Post-Deployment - plots", "ERROR")))))
+
+
+
+oyst_size_summary_fig$data_type <- factor(oyst_size_summary_fig$data_type, levels = c("Unseeded", "Ambient Cue", "Predator Cue", "Overall Plot"))
+
+
+
+```
 
 
 ## Trying a different way to plot the oyster data
@@ -612,8 +752,9 @@ FIG_oyst_abundance
 
 oyster_custom_ggplot <- function(summary1, variable_name, plot_type1, plot_type2, y_axis_label, y_axis_min, y_axis_max) {
   gg <- ggplot(summary1, aes(x = data_type, y = !!sym(paste0(variable_name, "_Mean")), group = Plot_Type)) +
-        facet_wrap(~Date, nrow = 2, ncol = 1,
-               labeller = labeller(Date = c("8/2/23" = "a) Initial", "9/6/23" = "b) One Month Post-Deployment")),
+        facet_wrap(~oyst_facets, nrow = 2, ncol = 2,
+                   # labeller = labeller(Date = c("8/2/23" = "a) Initial", "9/6/23" = "b) One Month Post-Deployment")),
+               # labeller = labeller(Date = c("8/2/23" = "a) Initial", "9/6/23" = "b) One Month Post-Deployment")),
                scales = "free") +
     theme_classic() + 
     geom_linerange(aes(ymin = !!sym(paste0(variable_name, "_Mean")) - !!sym(paste0(variable_name, "_SE")),
@@ -646,7 +787,7 @@ oyster_custom_ggplot <- function(summary1, variable_name, plot_type1, plot_type2
                                      size = 13),
           axis.text.y = element_text(size = 14),
           strip.text = element_text(size = 16),
-          legend.position = c(1, 1),
+          legend.position = c(0.71, 1),
           legend.justification = c("right","top"),
           legend.box.background = element_rect(color = "black", linewidth = 1))
   
@@ -660,18 +801,20 @@ oyster_custom_ggplot <- function(summary1, variable_name, plot_type1, plot_type2
 
 ```{r Oyster Figures}
 
+## Oyster Abundance Figure
 Fig_1_Oyster_Abundance <- oyster_custom_ggplot(oyst_abundance_summary_fig, "Oyster_Abundance", y_axis_label = "Oyster Abundance", y_axis_min = 0, y_axis_max = 35)
 
 Fig_1_Oyster_Abundance
 
-# Fig_2_Oyster_Size <- seagrass_custom_ggplot(oyst_size_summary_fig, "Oyster_Size", y_axis_label = "Oyster Size (mm)", y_axis_min = 0, y_axis_max = 30)
+ggsave("../plots/Fig_1_oyster_abundance_v2.pdf", width = 8.5, height = 6.5, units = "in")
 
 
-Fig_1_Oyster_Abundance
-ggsave("../plots/Fig_1_oyster_abundance.pdf", width = 8.5, height = 6.5, units = "in")
+## Oyster Size Figure
+Fig_2_Oyster_Size <- oyster_custom_ggplot(oyst_size_summary_fig, "Oyster_Length_mm", y_axis_label = "Oyster Size (mm)", y_axis_min = 0, y_axis_max = 30)
 
-# Fig_2_Oyster_Size
-# ggsave("../plots/Fig_2_oyster_size.pdf", width = 8.5, height = 6, units = "in")
+Fig_2_Oyster_Size
+
+ggsave("../plots/Fig_2_oyster_size.pdf", width = 8.5, height = 6.5, units = "in")
 
 ```
 
